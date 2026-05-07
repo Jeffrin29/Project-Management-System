@@ -979,3 +979,21 @@
 [2026-05-05 14:44:22] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
 [2026-05-05 14:44:32] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
 [2026-05-05 14:44:32] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-05 20:58:40] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-05 20:58:40] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-05 20:58:51] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-05 20:58:52] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-06 10:48:40] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-06 10:48:40] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-06 10:48:40] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-06 10:48:40] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-06 14:57:52] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-06 14:57:52] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-06 14:58:03] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-06 14:58:04] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-06 18:25:13] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-06 18:25:13] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-07 11:07:24] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-07 11:07:24] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-07 11:07:24] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-07 11:07:24] [32minfo[39m: [32m🔌 Socket.io ready[39m
