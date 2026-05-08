@@ -30,6 +30,8 @@ function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`${inputCls} pr-12`}
+        autoComplete="off"
+        style={{ WebkitTextSecurity: show ? "none" : undefined } as React.CSSProperties}
       />
       <button
         type="button"

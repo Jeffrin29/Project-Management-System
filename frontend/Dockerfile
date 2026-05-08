@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["npm", "run", "dev"]
+CMD ["npx", "next", "dev", "-p", "4000"]
