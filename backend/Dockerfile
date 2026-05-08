@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 9000
 
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/server.js"]
