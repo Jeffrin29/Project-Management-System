@@ -49,38 +49,55 @@ interface Leave {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** Shift a UTC Date to its IST "virtual UTC" for date-field extraction */
+const toISTVirtual = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS);
+
 const formatDate = (date?: string | Date) => {
   if (!date) return "—";
   const d = new Date(date);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleString();
+  return isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 };
 
 const formatDateOnly = (date?: string | Date) => {
   if (!date) return "—";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
+  return d.toLocaleDateString("en-IN", {
+    day:   "2-digit",
     month: "2-digit",
-    year: "numeric"
+    year:  "numeric",
+    timeZone: "Asia/Kolkata"
   });
 };
 
 const isToday = (date?: string | Date) => {
   if (!date) return false;
   const d = new Date(date);
-  const today = new Date();
+  if (isNaN(d.getTime())) return false;
+  // Compare IST calendar dates
+  const dIST     = toISTVirtual(d);
+  const todayIST = toISTVirtual(new Date());
   return (
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate()
+    dIST.getUTCFullYear() === todayIST.getUTCFullYear() &&
+    dIST.getUTCMonth()    === todayIST.getUTCMonth()    &&
+    dIST.getUTCDate()     === todayIST.getUTCDate()
   );
 };
 
 const formatTime = (date?: string | Date) => {
   if (!date) return "--";
   const d = new Date(date);
-  return isNaN(d.getTime()) ? "--" : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return isNaN(d.getTime())
+    ? "--"
+    : d.toLocaleTimeString("en-IN", {
+        hour:     "2-digit",
+        minute:   "2-digit",
+        timeZone: "Asia/Kolkata"
+      });
 };
 
 const getDateField = (item: any) => {
@@ -88,16 +105,18 @@ const getDateField = (item: any) => {
 };
 
 function Badge({ status }: { status: string }) {
-    const s = status?.toLowerCase();
+    const s = status?.toLowerCase().replace(/[\s-]/g, '');
     const mapping: Record<string, string> = {
-        active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+        active:   'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
         inactive: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20',
-        pending: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+        pending:  'bg-amber-500/10 text-amber-500 border-amber-500/20',
         approved: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
         rejected: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
-        present: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-        absent: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
-        late: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+        present:  'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+        absent:   'bg-rose-500/10 text-rose-500 border-rose-500/20',
+        late:     'bg-amber-500/10 text-amber-500 border-amber-500/20',
+        halfday:  'bg-blue-500/10 text-blue-500 border-blue-500/20',
+        halfDay:  'bg-blue-500/10 text-blue-500 border-blue-500/20',
     };
 
     return (
@@ -439,12 +458,13 @@ export default function HRMSPage() {
                         )}
 
                         <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800/50 rounded-[2rem] overflow-hidden shadow-sm">
-                            <table className="w-full text-sm text-left">
+                                <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50/50 dark:bg-zinc-800/30 border-b border-gray-100 dark:border-zinc-800 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-zinc-500">
                                     <tr>
                                         <th className="px-8 py-5">Personnel</th>
-                                        <th className="px-8 py-5">Timestamp</th>
-                                        <th className="px-8 py-5">In / Out</th>
+                                        <th className="px-8 py-5">Date (IST)</th>
+                                        <th className="px-8 py-5">In / Out (IST)</th>
+                                        <th className="px-8 py-5">Hours</th>
                                         <th className="px-8 py-5">Status</th>
                                     </tr>
                                 </thead>
@@ -453,12 +473,13 @@ export default function HRMSPage() {
                                             console.log("[HRMS] RAW ATTENDANCE DATA:", data);
                                             
                                             const normalizedData = (data || []).map((item: any) => ({
-                                                _id: item._id || item.id,
-                                                name: item.name || item.user?.name || item.employeeName || "Unknown",
-                                                email: item.email || item.user?.email || "—",
-                                                checkIn: item.checkIn || item.clockIn || item.inTime || item.timestamp || null,
-                                                checkOut: item.checkOut || item.clockOut || item.outTime || null,
-                                                status: item.status || "UNKNOWN",
+                                                _id:        item._id || item.id,
+                                                name:       item.name || item.user?.name || item.employeeName || "Unknown",
+                                                email:      item.email || item.user?.email || "—",
+                                                checkIn:    item.checkIn  || item.clockIn  || item.inTime  || item.timestamp || null,
+                                                checkOut:   item.checkOut || item.clockOut || item.outTime || null,
+                                                status:     item.status || "UNKNOWN",
+                                                workingHours: typeof item.workingHours === 'number' ? item.workingHours : null,
                                                 dateRecord: item.date || item.timestamp || item.checkIn
                                             }));
 
@@ -469,7 +490,7 @@ export default function HRMSPage() {
                                             console.log("[HRMS] TODAY ATTENDANCE:", todayAttendance);
 
                                             if (todayAttendance.length === 0) {
-                                                return <tr><td colSpan={4} className="text-center text-gray-400 dark:text-zinc-500 text-sm font-medium py-20 italic">No attendance recorded for today.</td></tr>;
+                                                return <tr><td colSpan={5} className="text-center text-gray-400 dark:text-zinc-500 text-sm font-medium py-20 italic">No attendance recorded for today.</td></tr>;
                                             }
 
                                             return todayAttendance.map((a: any, index: number) => (
@@ -482,7 +503,13 @@ export default function HRMSPage() {
                                                     <td className="px-8 py-5 font-medium text-gray-500">
                                                         <span className="text-emerald-500">{formatTime(a.checkIn)}</span>
                                                         <span className="mx-2 opacity-30">/</span>
-                                                        <span className="text-rose-500">{formatTime(a.checkOut)}</span>
+                                                        <span className="text-rose-500">{a.checkOut ? formatTime(a.checkOut) : <span className="text-amber-500 italic text-[11px]">active</span>}</span>
+                                                    </td>
+                                                    <td className="px-8 py-5">
+                                                        {a.workingHours !== null
+                                                            ? <span className="font-bold text-gray-700 dark:text-zinc-200">{a.workingHours}h</span>
+                                                            : <span className="text-gray-400 dark:text-zinc-500 italic text-[11px]">in progress</span>
+                                                        }
                                                     </td>
                                                     <td className="px-8 py-5"><Badge status={a.status} /></td>
                                                 </tr>

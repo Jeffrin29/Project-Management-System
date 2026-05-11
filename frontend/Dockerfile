@@ -1,6 +1,6 @@
 # Frontend Dockerfile
 
-FROM node:20
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["npx", "next", "dev", "-p", "4000"]
+CMD ["npm", "run", "dev"]

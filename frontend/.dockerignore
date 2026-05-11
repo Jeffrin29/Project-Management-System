@@ -1,3 +1,12 @@
 node_modules
 .next
-.env
+.git
+.vscode
+dist
+build
+coverage
+tmp
+.cache
+*.log
+Dockerfile
+docker-compose.yml

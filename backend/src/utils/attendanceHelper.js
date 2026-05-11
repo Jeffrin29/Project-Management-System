@@ -1,39 +1,55 @@
 'use strict';
 
+const { getISTDayStart, getIST7PMThreshold, isSameISTDay } = require('./istTime');
+
 /**
- * Auto check-out logic
- * If a record has checkIn but no checkOut and the time is past 7:00 PM (19:00),
- * we set checkOut to 7:00 PM and recalculate working hours.
+ * Auto check-out logic (IST-safe)
+ * --------------------------------
+ * If a record has checkIn but no checkOut, and either:
+ *   - The check-in was on a PAST IST calendar day, OR
+ *   - It is the same IST day AND current time is >= 7:00 PM IST
+ *
+ * Then: set checkOut = 7:00 PM IST (of the check-in day), recalculate
+ *       workingHours, and apply Half Day rule if needed.
+ *
+ * KEY FIX: getIST7PMThreshold() returns the UTC equivalent of 19:00 IST
+ * for the record's IST calendar day. This eliminates the 14.3h bug that
+ * occurred when `new Date('YYYY-MM-DDT19:00:00')` was interpreted as
+ * 19:00 UTC (= 00:30 IST next day) in UTC Docker containers.
  */
 const enforceAutoLogout = async (record) => {
     if (!record || record.checkOut || !record.checkIn) return record;
 
     const now = new Date();
-    // Getting the date YYYY-MM-DD from record.date (which is a Date or string)
-    const recordDate = new Date(record.date);
-    const todayStr = now.toISOString().split('T')[0];
-    const recordDateStr = recordDate.toISOString().split('T')[0];
-    
-    // Threshold time: 7:00 PM on the same day as the check-in
-    const thresholdTime = new Date(recordDateStr + 'T19:00:00');
+    const checkInDate = new Date(record.checkIn);
 
-    if (recordDateStr < todayStr || (recordDateStr === todayStr && now > thresholdTime)) {
-        record.checkOut = thresholdTime;
-        
-        // Recalculate working hours (in hrs, floating point)
-        const diffMs = record.checkOut - record.checkIn;
-        record.workingHours = Math.max(0, diffMs / (1000 * 60 * 60));
+    // 7:00 PM IST expressed as UTC, for the IST day of the check-in
+    const threshold7PMIST = getIST7PMThreshold(checkInDate);
 
-        // Mark as Half Day if needed
-        if (record.workingHours < 4) {
+    // IST day start for the record vs today
+    const recordISTDayStart = getISTDayStart(checkInDate);
+    const todayISTDayStart  = getISTDayStart(now);
+
+    const isPastISTDay      = recordISTDayStart < todayISTDayStart;
+    const isTodayPast7PM    = isSameISTDay(checkInDate, now) && now >= threshold7PMIST;
+
+    if (isPastISTDay || isTodayPast7PM) {
+        record.checkOut     = threshold7PMIST;
+        const diffMs        = record.checkOut.getTime() - checkInDate.getTime();
+        const hours         = parseFloat(Math.max(0, diffMs / (1000 * 60 * 60)).toFixed(1));
+        record.workingHours = hours;
+
+        // Half Day takes priority over Present / Late
+        if (hours < 4) {
             record.status = 'Half Day';
         }
-        
-        // Only save if it's a mongoose document
+
+        // Persist only for Mongoose documents
         if (typeof record.save === 'function') {
             await record.save();
         }
     }
+
     return record;
 };
 

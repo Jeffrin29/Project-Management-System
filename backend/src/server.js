@@ -15,6 +15,7 @@ const connectDB = require('./config/database');
 const config = require('./config/config');
 const logger = require('./utils/logger');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { runAutoLogoutSweep } = require('./utils/autoLogoutJob');
 
 // ─── Route imports ────────────────────────────────────────────────────────────
 const authRoutes = require('./routes/authRoutes');
@@ -142,6 +143,22 @@ const startServer = async () => {
       logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
       logger.info(`🔌 Socket.io ready`);
     });
+
+    // ── Auto-Logout Background Job ───────────────────────────────────────────
+    // Runs every 5 minutes. Marks open check-ins as checked-out at 7 PM IST.
+    const AUTO_LOGOUT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    setInterval(async () => {
+      try {
+        const count = await runAutoLogoutSweep();
+        if (count > 0) {
+          logger.info(`[AutoLogout] ✅ ${count} record(s) auto-checked-out at 7 PM IST`);
+        }
+      } catch (err) {
+        logger.error(`[AutoLogout] ❌ Sweep failed: ${err.message}`);
+      }
+    }, AUTO_LOGOUT_INTERVAL_MS);
+    logger.info(`⏱  Auto-logout job scheduled every ${AUTO_LOGOUT_INTERVAL_MS / 60000} min`);
+
   } catch (error) {
     logger.error(`❌ Failed to start server: ${error.message}`);
     process.exit(1);

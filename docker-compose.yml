@@ -1,7 +1,4 @@
-version: "3"
-
 services:
-
   backend:
     build: ./backend
     ports:
@@ -11,6 +8,8 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - TZ=Asia/Kolkata
+    mem_limit: 2g
 
   frontend:
     build: ./frontend
@@ -21,5 +20,8 @@ services:
       - /app/node_modules
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:9000/api
+      - NODE_OPTIONS=--max-old-space-size=4096
+    mem_limit: 4g
+    memswap_limit: 4g
     depends_on:
       - backend
