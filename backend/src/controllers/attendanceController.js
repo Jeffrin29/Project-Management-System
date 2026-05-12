@@ -1,5 +1,7 @@
 'use strict';
 
+const moment = require('moment-timezone');
+
 const Attendance = require('../models/Attendance');
 const HrEmployee = require('../models/HrEmployee');
 const Leave = require('../models/Leave');
@@ -18,7 +20,13 @@ const {
 // POST /attendance/checkin
 exports.checkIn = async (req, res) => {
     try {
-        const now  = new Date();
+        // ── STORAGE RULE: MongoDB stores UTC ──────────────────────────────────
+        // MongoDB stores all timestamps (date, checkIn, checkOut) in UTC.
+        // This is the industry standard for distributed and containerized apps.
+        // WE NEVER add timezone offsets manually before saving to DB.
+        
+        const now  = new Date(); // Raw UTC timestamp for storage
+        const nowIST = moment().tz("Asia/Kolkata");
         // Use IST-aware day boundaries so that "today" is correct even in UTC Docker
         const start = getISTDayStart(now);
         const end   = getISTDayEnd(now);
@@ -35,45 +43,45 @@ exports.checkIn = async (req, res) => {
             return errorResponse(res, 'Already checked in today', 400);
         }
 
-        // ── Attendance Status Rules (IST) ──────────────────────────────────────
-        // 9:30 AM IST → 10:00 AM IST → Present
-        // After 10:00 AM IST              → Late
-        const ist930  = getIST930AM(now);   // 9:30 AM IST as UTC
-        const ist10AM = getIST10AM(now);    // 10:00 AM IST as UTC
+        // ── LOGIC RULE: Attendance Rules use IST ──────────────────────────────
+        // We convert UTC -> IST only for checking business rules (Late/Present).
+        const checkInIST = new Date(
+            now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        );
+        const totalMinutes = checkInIST.getHours() * 60 + checkInIST.getMinutes();
 
         let status = 'Present';
         let late   = false;
 
-        if (now > ist10AM) {
-            // Checked in after 10:00 AM IST
+        if (totalMinutes > 600) { // 600 mins = 10:00 AM IST
             status = 'Late';
             late   = true;
-        } else if (now >= ist930) {
-            // Checked in between 9:30 and 10:00 AM IST
-            status = 'Present';
-            late   = false;
-        } else {
-            // Checked in before 9:30 AM IST — still Present (early bird)
-            status = 'Present';
-            late   = false;
         }
 
-        const checkInHour = getISTHour(now);
-        const checkInMin  = getISTMinutes(now);
-        console.log(`[CheckIn] userId=${userId} IST time=${checkInHour}:${String(checkInMin).padStart(2,'0')} status=${status}`);
+        console.log(`[CheckIn] userId=${userId} IST time=${checkInIST.getHours()}:${String(checkInIST.getMinutes()).padStart(2,'0')} status=${status}`);
 
         const emp = await HrEmployee.findOne({ userId, organizationId });
 
-        const record = await Attendance.create({
+        const attendanceData = {
             user:           userId,
             employeeId:     emp?._id || null,
             organizationId,
-            date:           now,   // stored as UTC (MongoDB standard)
-            checkIn:        now,
+            date:           now, // Store actual UTC Date object
+            checkIn:        now, // Store actual UTC Date object
             status,
             late,
             workingHours:   0
-        });
+        };
+
+        console.log("Attendance payload (Check-in):", attendanceData);
+
+        let record;
+        try {
+            record = await Attendance.create(attendanceData);
+        } catch (err) {
+            console.error('[CheckIn] Database Save Error:', err);
+            return errorResponse(res, 'Failed to save attendance record', 500);
+        }
 
         await logActivity({
             userId,
@@ -81,7 +89,7 @@ exports.checkIn = async (req, res) => {
             action:      'attendance:check-in',
             entityType:  'attendance',
             entityId:     record._id,
-            description: `Check-in at ${checkInHour}:${String(checkInMin).padStart(2,'0')} IST — Status: ${status}`
+            description: `Check-in at ${moment(record.checkIn).tz("Asia/Kolkata").format('hh:mm A')} IST — Status: ${status}`
         });
 
         return successResponse(res, record, 'Checked in successfully');
@@ -115,24 +123,36 @@ exports.checkOut = async (req, res) => {
 
         record.checkOut = now;
 
-        // ── Working Hours Calculation ──────────────────────────────────────────
-        // Both checkIn and checkOut are stored as UTC timestamps in MongoDB.
-        // Simple millisecond subtraction is timezone-safe.
-        const diffMs = record.checkOut.getTime() - new Date(record.checkIn).getTime();
-        const hours  = parseFloat(Math.max(0, diffMs / (1000 * 60 * 60)).toFixed(1));
-        record.workingHours = hours;
+        // ── CALCULATION RULE: Use Raw UTC getTime() ───────────────────────────
+        // ALWAYS use raw UTC timestamps for working hours calculations.
+        // NEVER convert to IST before subtraction. NEVER parse locale strings.
+        const checkInTime = new Date(record.checkIn).getTime();
+        const checkOutTime = now.getTime();
+        
+        const diffMs = checkOutTime - checkInTime;
+        const workingHours = Math.max(0, diffMs / (1000 * 60 * 60));
+        record.workingHours = Number(workingHours.toFixed(1));
 
-        // ── Final Status Logic ─────────────────────────────────────────────────
-        // Half Day overrides Present / Late; Late is already set from checkIn
-        if (hours < 4) {
+        // ── STATUS RULE: Half Day overrides Present/Late ──────────────────────
+        if (record.workingHours < 4) {
             record.status = 'Half Day';
         }
-        // else: keep status from check-in (Present or Late)
+        // Original status (Present/Late) is preserved if >= 4 hours.
 
-        await record.save();
+        console.log("DEBUG [CheckOut] before save:", {
+            checkIn: record.checkIn,
+            checkOut: record.checkOut,
+            workingHours: record.workingHours,
+            status: record.status,
+            userId: record.user
+        });
 
-        const checkOutHour = getISTHour(now);
-        const checkOutMin  = getISTMinutes(now);
+        try {
+            await record.save();
+        } catch (err) {
+            console.error('[CheckOut] Database Save Error:', err);
+            return errorResponse(res, 'Failed to update attendance record', 500);
+        }
 
         await logActivity({
             userId,
@@ -140,7 +160,7 @@ exports.checkOut = async (req, res) => {
             action:      'attendance:check-out',
             entityType:  'attendance',
             entityId:     record._id,
-            description: `Check-out at ${checkOutHour}:${String(checkOutMin).padStart(2,'0')} IST — Hours: ${hours}h — Status: ${record.status}`
+            description: `Check-out at ${moment(record.checkOut).tz("Asia/Kolkata").format('hh:mm A')} IST — Hours: ${record.workingHours}h — Status: ${record.status}`
         });
 
         return successResponse(res, record, 'Checked out successfully');

@@ -78,7 +78,10 @@ app.use((req, _res, next) => {
 
 // ─── Security Middleware ──────────────────────────────────────────────────────
 app.use(helmet());
-app.use(cors(config.cors));
+app.use(cors({
+  origin: "*",
+  credentials: true
+}));
 app.set('trust proxy', 1);
 
 // ─── Global Rate Limiter ──────────────────────────────────────────────────────
@@ -95,6 +98,10 @@ if (process.env.NODE_ENV !== 'test') {
     stream: { write: (message) => logger.http(message.trim()) },
   }));
 }
+
+app.get('/', (req, res) => {
+  res.send('Backend Running');
+});
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
@@ -138,7 +145,7 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       logger.info(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
       logger.info(`🔌 Socket.io ready`);

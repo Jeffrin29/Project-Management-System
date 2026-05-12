@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { hrmsApi } from "../../../lib/api";
 import { useRouter } from "next/navigation";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { formatISTDate, formatISTTime, formatISTDateTime, getCurrentISTDate } from "../../../lib/date";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface HrmsStats {
@@ -49,55 +50,25 @@ interface Leave {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-
-/** Shift a UTC Date to its IST "virtual UTC" for date-field extraction */
-const toISTVirtual = (d: Date) => new Date(d.getTime() + IST_OFFSET_MS);
-
-const formatDate = (date?: string | Date) => {
-  if (!date) return "—";
-  const d = new Date(date);
-  return isNaN(d.getTime())
-    ? "—"
-    : d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-};
-
-const formatDateOnly = (date?: string | Date) => {
-  if (!date) return "—";
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-IN", {
-    day:   "2-digit",
-    month: "2-digit",
-    year:  "numeric",
-    timeZone: "Asia/Kolkata"
-  });
-};
+/**
+ * Note on Timezones:
+ * MongoDB stores all timestamps in UTC. This is correct practice.
+ * We convert UTC -> IST only for display using formatIST helpers.
+ */
 
 const isToday = (date?: string | Date) => {
   if (!date) return false;
   const d = new Date(date);
   if (isNaN(d.getTime())) return false;
-  // Compare IST calendar dates
-  const dIST     = toISTVirtual(d);
-  const todayIST = toISTVirtual(new Date());
+  
+  const dIST = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const todayIST = getCurrentISTDate();
+  
   return (
-    dIST.getUTCFullYear() === todayIST.getUTCFullYear() &&
-    dIST.getUTCMonth()    === todayIST.getUTCMonth()    &&
-    dIST.getUTCDate()     === todayIST.getUTCDate()
+    dIST.getFullYear() === todayIST.getFullYear() &&
+    dIST.getMonth()    === todayIST.getMonth()    &&
+    dIST.getDate()     === todayIST.getDate()
   );
-};
-
-const formatTime = (date?: string | Date) => {
-  if (!date) return "--";
-  const d = new Date(date);
-  return isNaN(d.getTime())
-    ? "--"
-    : d.toLocaleTimeString("en-IN", {
-        hour:     "2-digit",
-        minute:   "2-digit",
-        timeZone: "Asia/Kolkata"
-      });
 };
 
 const getDateField = (item: any) => {
@@ -499,11 +470,11 @@ export default function HRMSPage() {
                                                         <p className="text-[13px] font-semibold text-gray-900 dark:text-white">{a.name}</p>
                                                         <p className="text-[11px] font-medium text-gray-500 dark:text-zinc-500">{a.email}</p>
                                                     </td>
-                                                    <td className="px-8 py-5 font-medium">{formatDateOnly(a.dateRecord)}</td>
+                                                    <td className="px-8 py-5 font-medium">{formatISTDate(a.dateRecord)}</td>
                                                     <td className="px-8 py-5 font-medium text-gray-500">
-                                                        <span className="text-emerald-500">{formatTime(a.checkIn)}</span>
+                                                        <span className="text-emerald-500">{formatISTTime(a.checkIn)}</span>
                                                         <span className="mx-2 opacity-30">/</span>
-                                                        <span className="text-rose-500">{a.checkOut ? formatTime(a.checkOut) : <span className="text-amber-500 italic text-[11px]">active</span>}</span>
+                                                        <span className="text-rose-500">{a.checkOut ? formatISTTime(a.checkOut) : <span className="text-amber-500 italic text-[11px]">active</span>}</span>
                                                     </td>
                                                     <td className="px-8 py-5">
                                                         {a.workingHours !== null
@@ -538,7 +509,7 @@ export default function HRMSPage() {
                                     <tr key={l._id || l.id || index} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/20 transition-all">
                                         <td className="px-8 py-5 text-[13px] font-semibold text-gray-900 dark:text-white">{l.user?.name || "—"}</td>
                                         <td className="px-8 py-5"><span className="px-3 py-1 bg-gray-100 dark:bg-zinc-800 rounded-lg text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">{l.leaveType}</span></td>
-                                        <td className="px-8 py-5 text-[13px] font-semibold">{formatDateOnly(l.startDate)} - {formatDateOnly(l.endDate)}</td>
+                                        <td className="px-8 py-5 text-[13px] font-semibold">{formatISTDate(l.startDate)} - {formatISTDate(l.endDate)}</td>
                                         <td className="px-8 py-5"><Badge status={l.status} /></td>
                                         <td className="px-8 py-5 text-right">
                                             {l.status?.toLowerCase() === 'pending' && (

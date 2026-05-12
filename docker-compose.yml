@@ -20,8 +20,13 @@ services:
       - /app/node_modules
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:9000/api
+      - TZ=Asia/Kolkata
       - NODE_OPTIONS=--max-old-space-size=4096
     mem_limit: 4g
     memswap_limit: 4g
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     depends_on:
       - backend

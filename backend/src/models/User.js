@@ -143,7 +143,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // ─── Indexes ─────────────────────────────────────────────────────────────────
-userSchema.index({ email: 1 });
+// userSchema.index({ email: 1 }); // redundant with unique: true
 userSchema.index({ organizationId: 1 });
 userSchema.index({ organizationId: 1, status: 1 });
 userSchema.index({ organizationId: 1, roleId: 1 });

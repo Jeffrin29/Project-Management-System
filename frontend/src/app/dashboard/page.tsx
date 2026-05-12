@@ -42,10 +42,16 @@ interface ActivityItem {
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
+/**
+ * Note on Timezones:
+ * MongoDB stores all timestamps in UTC. This is correct practice.
+ * We convert UTC -> IST only for display or for time-relative calculations.
+ */
 function timeAgo(date: string) {
   if (!date) return "just now";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "just now";
+  // Date.now() is UTC epoch, d.getTime() is UTC epoch. Diff is timezone-safe.
   const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
