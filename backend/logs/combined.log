@@ -1085,3 +1085,58 @@
 [2026-05-11 16:15:35] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
 [2026-05-11 16:15:35] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
 [2026-05-11 16:15:35] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 09:59:17] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 09:59:17] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 09:59:17] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 09:59:17] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 09:59:17] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 10:45:39] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 10:45:39] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 10:45:39] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 10:45:39] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 10:45:39] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 13:04:23] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 13:04:24] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 13:04:24] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 13:04:24] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 13:04:24] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 13:04:30] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 13:04:30] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 13:04:30] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 13:04:30] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 13:04:30] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 13:05:02] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 13:05:02] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 13:05:02] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 13:05:02] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 13:05:02] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 14:10:35] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 14:10:35] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 14:10:35] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 14:10:35] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 14:10:35] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 14:10:54] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 14:10:54] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 14:10:54] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 14:10:54] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 14:10:54] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 14:11:08] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 14:11:08] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 14:11:08] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 14:11:08] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 14:11:08] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 14:26:35] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-12 14:26:45] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-12 14:26:46] [32minfo[39m: [32m✅ MongoDB reconnected successfully.[39m
+[2026-05-12 14:36:07] [32minfo[39m: [32m[39m
+[32m⚠️  SIGINT received. Shutting down gracefully...[39m
+[2026-05-12 14:54:01] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 14:54:01] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 14:54:01] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 14:54:01] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 14:54:01] [32minfo[39m: [32m🔌 Socket.io ready[39m
+[2026-05-12 15:39:42] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-12 15:39:42] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-12 15:39:43] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-12 15:39:43] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-12 15:39:43] [32minfo[39m: [32m🔌 Socket.io ready[39m

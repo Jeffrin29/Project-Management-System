@@ -40,20 +40,29 @@ const runAutoLogoutSweep = async () => {
         try {
             const checkInDate      = new Date(record.checkIn);
             const recordISTDayStart = getISTDayStart(checkInDate);
-            // Threshold is 7 PM IST of the record's IST day
+            // Threshold is 7 PM IST of the record's IST day (returned as UTC equivalent)
             const recordThreshold  = getIST7PMThreshold(checkInDate);
 
             // Only auto-logout if we have passed the 7 PM IST mark for that day
             if (now < recordThreshold) continue;
 
+            // ── STORAGE RULE: Store UTC ───────────────────────────────────────────
+            // We store the 7:00 PM IST mark as its UTC equivalent Date object.
             record.checkOut     = recordThreshold;
+            
+            // ── CALCULATION RULE: Use Raw UTC getTime() ───────────────────────────
+            // ALWAYS use raw UTC timestamps for duration. NEVER parse locale strings.
             const diffMs        = recordThreshold.getTime() - checkInDate.getTime();
             const hours         = parseFloat(Math.max(0, diffMs / (1000 * 60 * 60)).toFixed(1));
             record.workingHours = hours;
 
+            // ── STATUS RULE: Half Day overrides Late/Present ──────────────────────
             if (hours < 4) {
                 record.status = 'Half Day';
             }
+            // else: keep status from check-in (Present or Late)
+
+            console.log(`DEBUG [AutoLogoutJob] recordId=${record._id} hours=${hours} status=${record.status}`);
 
             await record.save();
             count++;

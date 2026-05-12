@@ -2,13 +2,18 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "../components/dashboard/theme-provider";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
 export const metadata = {
-  title: "Project Intelligence",
+  title: "LANSUB",
+  icons: {
+    icon: [
+      { url: "/images/logog.png" },
+    ],
+  },
 };
 
 export default function RootLayout({

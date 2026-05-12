@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { attendanceApi, leaveApi } from "../../../lib/api";
+import { formatISTDate, formatISTTime } from "../../../lib/date";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Attendance {
@@ -86,6 +87,11 @@ function SimplePieChart({ data }: { data: any[] }) {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
+/**
+ * Note on Timezones:
+ * MongoDB stores all timestamps in UTC. This is correct practice.
+ * We convert UTC -> IST only for display using formatIST helpers.
+ */
 export default function EmployeePage() {
     const [activeTab, setActiveTab] = useState<'attendance' | 'apply' | 'history'>('attendance');
     const [stats, setStats] = useState<any>(null);
@@ -231,9 +237,9 @@ export default function EmployeePage() {
                                 ) : Array.isArray(attendance) && attendance.length > 0 ? (
                                     attendance.map((a) => (
                                         <tr key={a._id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/40">
-                                            <td className="px-5 py-4 font-medium">{new Date(a.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</td>
-                                            <td className="px-5 py-4">{a.checkIn ? new Date(a.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                                            <td className="px-5 py-4">{a.checkOut ? new Date(a.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                                            <td className="px-5 py-4 font-medium">{formatISTDate(a.date)}</td>
+                                            <td className="px-5 py-4">{formatISTTime(a.checkIn)}</td>
+                                            <td className="px-5 py-4">{formatISTTime(a.checkOut)}</td>
                                             <td className="px-5 py-4 font-medium">{a.workingHours !== undefined ? `${a.workingHours.toFixed(1)}h` : '—'}</td>
                                             <td className="px-5 py-4"><StatusBadge status={a.status} /></td>
                                         </tr>
@@ -301,8 +307,8 @@ export default function EmployeePage() {
                                     leaves.map((l) => (
                                         <tr key={l._id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/40">
                                             <td className="px-5 py-4 font-medium">{l.leaveType}</td>
-                                            <td className="px-5 py-4">{new Date(l.startDate).toLocaleDateString()}</td>
-                                            <td className="px-5 py-4">{new Date(l.endDate).toLocaleDateString()}</td>
+                                            <td className="px-5 py-4">{formatISTDate(l.startDate)}</td>
+                                            <td className="px-5 py-4">{formatISTDate(l.endDate)}</td>
                                             <td className="px-5 py-4 text-xs text-gray-500 truncate max-w-[150px]">{l.reason}</td>
                                             <td className="px-5 py-4"><StatusBadge status={l.status} /></td>
                                             <td className="px-5 py-4 text-right">
