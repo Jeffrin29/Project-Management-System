@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["http://98.70.44.251"],
+  allowedDevOrigins: ["98.70.44.251", "98.70.44.251:4000"],
 
   webpack: (config, { isServer }) => {
     if (!isServer) {
