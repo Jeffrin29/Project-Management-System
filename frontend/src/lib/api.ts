@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://98.70.44.251:9000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:9000/api";
 
 // ── Token helpers ────────────────────────────────────────────────────────────
 
