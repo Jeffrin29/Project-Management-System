@@ -1,0 +1,9 @@
+[2026-05-14 14:42:05] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-14 15:02:21] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-14 15:42:07] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-14 15:44:23] [33mwarn[39m: [33m⚠️  MongoDB disconnected. Attempting to reconnect...[39m
+[2026-05-14 15:56:48] [32minfo[39m: [32m✅ MongoDB Connected: ac-euqjpau-shard-00-00.nfljew1.mongodb.net[39m
+[2026-05-14 15:56:48] [32minfo[39m: [32m⏱  Auto-logout job scheduled every 5 min[39m
+[2026-05-14 15:56:48] [32minfo[39m: [32m🚀 Server running in development mode on port 9000[39m
+[2026-05-14 15:56:48] [32minfo[39m: [32m🔗 Health check: http://localhost:9000/api/health[39m
+[2026-05-14 15:56:48] [32minfo[39m: [32m🔌 Socket.io ready[39m
