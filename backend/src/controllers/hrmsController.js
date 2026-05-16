@@ -16,29 +16,44 @@ const { enforceAutoLogout } = require('../utils/attendanceHelper');
 
 exports.getHrmsStats = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const organizationId = req.user.organizationId;
+    // FORCE FETCH ALL: No filters as per instruction to debug missing users
+    const employees = await User.find({}).populate('roleId').lean();
     
-    // Fetch data properly with org isolation
-    const employees = await User.find({ organizationId }).lean();
-    const activeEmployees = employees.filter(e => e.status?.toUpperCase() === "ACTIVE");
-    const departments = await Department.find({ organizationId }).lean();
+    // Attendance-based status check
+    const userIds = employees.map(e => e._id);
+    const usersWithAttendance = await Attendance.find({ user: { $in: userIds } }).distinct('user');
+    const attendanceSet = new Set(usersWithAttendance.map(id => id.toString()));
+
+    const activeEmployeesCount = employees.filter(e => attendanceSet.has(e._id.toString())).length;
+    const departments = await Department.find({}).lean();
     
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    const attendance = await Attendance.find({
-      organizationId,
+    const attendanceToday = await Attendance.find({
       date: { $gte: todayStart }
     }).lean();
 
-    // RETURN CLEAN RESPONSE
+    // Process employees with fallbacks and dynamic status
+    const processedEmployees = employees.map(e => {
+        let roleVal = e.role || (e.roleId ? (e.roleId.displayName || e.roleId.name) : null) || e.designation || e.position;
+        return {
+            ...e,
+            department: e.department || '—',
+            status: attendanceSet.has(e._id.toString()) ? 'Active' : 'Inactive',
+            role: roleVal || '—',
+            joiningDate: e.joiningDate || e.createdAt || new Date()
+        };
+    });
+
+    console.log(`[HRMS STATS] FORCE FETCHED: ${employees.length} users. ${activeEmployeesCount} active by attendance.`);
+
     return res.json({
       totalWorkforce: employees.length,
-      activeDeployment: activeEmployees.length,
+      activeDeployment: activeEmployeesCount,
       departmentsCount: departments.length,
-      attendanceToday: attendance.length,
-      employees
+      attendanceToday: attendanceToday.length,
+      employees: processedEmployees
     });
   } catch (err) {
     console.error("[HRMS STATS ERROR]:", err);
@@ -50,20 +65,36 @@ exports.getHrmsStats = async (req, res) => {
 
 exports.getEmployees = async (req, res) => {
   try {
-    const { search, status, department } = req.query;
-    const filter = { ...req.orgFilter };
-    if (status) filter.status = status;
-    if (department) filter.department = department;
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
-    }
-    const employees = await HrEmployee.find(filter).sort({ createdAt: -1 }).lean();
-    console.log(`[HRMS] Fetched ${employees.length} employees`);
-    return successResponse(res, employees, 'Employees fetched.');
+    // FORCE FETCH ALL: Remove all filters, orgId isolation, search, status, and department constraints
+    console.log("[HRMS] PERFORMING FORCE FETCH FROM DATABASE: User.find({}).populate('roleId')");
+    
+    const employees = await User.find({}).populate('roleId').sort({ createdAt: -1 }).lean();
+    
+    // Attendance-based status calculation
+    const userIds = employees.map(e => e._id);
+    const usersWithAttendance = await Attendance.find({ user: { $in: userIds } }).distinct('user');
+    const attendanceSet = new Set(usersWithAttendance.map(id => id.toString()));
+
+    console.log(`[HRMS] RAW QUERY SUCCESS: Found ${employees.length} users. ${attendanceSet.size} have attendance.`);
+
+    // Map with absolute fallbacks as per requirement
+    const unified = employees.map(e => {
+        // Resolve role: check string role, then populated roleId, then designation/position
+        let roleVal = e.role || (e.roleId ? (e.roleId.displayName || e.roleId.name) : null) || e.designation || e.position;
+        
+        return {
+            ...e,
+            role: roleVal || "—",
+            department: e.department || "—",
+            // ACTIVE if at least one attendance record exists, else INACTIVE
+            status: attendanceSet.has(e._id.toString()) ? "Active" : "Inactive",
+            joiningDate: e.joiningDate || e.createdAt || new Date()
+        };
+    });
+
+    return successResponse(res, unified, 'Employees fetched.');
   } catch (err) {
+    console.error("[HRMS] getEmployees Error:", err);
     return errorResponse(res, err.message, 500);
   }
 };
@@ -138,12 +169,17 @@ exports.createEmployee = async (req, res) => {
 
 exports.updateEmployee = async (req, res) => {
   try {
-    const employee = await HrEmployee.findOneAndUpdate(
+    const employee = await User.findOneAndUpdate(
       { _id: req.params.id, ...req.orgFilter },
       req.body,
       { new: true, runValidators: true }
-    );
-    if (!employee) return errorResponse(res, 'Employee not found.', 404);
+    ).lean();
+    
+    if (!employee) return errorResponse(res, 'Employee identity not found.', 404);
+    
+    // Also update HrEmployee if it exists (legacy sync)
+    await HrEmployee.findOneAndUpdate({ userId: req.params.id }, req.body);
+
     return successResponse(res, employee, 'Employee updated.');
   } catch (err) {
     return errorResponse(res, err.message, 500);
@@ -152,9 +188,13 @@ exports.updateEmployee = async (req, res) => {
 
 exports.deleteEmployee = async (req, res) => {
   try {
-    const employee = await HrEmployee.findOneAndDelete({ _id: req.params.id, ...req.orgFilter });
-    if (!employee) return errorResponse(res, 'Employee not found.', 404);
-    return successResponse(res, 'Employee deleted.');
+    const employee = await User.findOneAndDelete({ _id: req.params.id, ...req.orgFilter });
+    if (!employee) return errorResponse(res, 'Employee identity not found.', 404);
+    
+    // Also delete legacy HrEmployee record
+    await HrEmployee.findOneAndDelete({ userId: req.params.id });
+
+    return successResponse(res, 'Employee identity purged.');
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }
@@ -215,37 +255,86 @@ exports.deleteDepartment = async (req, res) => {
 exports.getAttendance = async (req, res) => {
   try {
     const { date, employeeId, month } = req.query;
-    const filter = { ...req.orgFilter };
-    
+    const { getISTDayStart, getISTDayEnd } = require('../utils/istTime');
+
+    // If a specific employeeId or month is requested, use the original filtered logic
+    if (employeeId || month) {
+      const filter = { ...req.orgFilter };
+
+      if (employeeId) {
+        const empRecord = await HrEmployee.findById(employeeId).lean();
+        filter.user = empRecord ? empRecord.userId : employeeId;
+      }
+
+      if (month) {
+        const [year, m] = month.split('-').map(Number);
+        const start = new Date(year, m - 1, 1);
+        const end = new Date(year, m, 1);
+        filter.date = { $gte: start, $lt: end };
+      }
+
+      const records = await Attendance.find(filter)
+        .populate('user', 'name email')
+        .sort({ date: -1 })
+        .lean();
+
+      const processedRecords = await Promise.all(records.map(r => enforceAutoLogout(r)));
+      return successResponse(res, processedRecords, 'Attendance fetched.');
+    }
+
+    // ── Default: Today's attendance for ALL employees in org ──────────────────
+    // Compute IST-aware today's boundaries
+    const now = new Date();
+    const todayStart = getISTDayStart(now);
+    const todayEnd   = getISTDayEnd(now);
+
+    // Allow override with ?date= param
+    let queryStart = todayStart;
+    let queryEnd   = todayEnd;
     if (date) {
       const d = new Date(date);
-      d.setHours(0,0,0,0);
-      const nextD = new Date(d);
-      nextD.setDate(d.getDate() + 1);
-      filter.date = { $gte: d, $lt: nextD };
+      queryStart = getISTDayStart(d);
+      queryEnd   = getISTDayEnd(d);
     }
 
-    if (employeeId) {
-      // Check if employeeId is an HrEmployee ID or a User ID
-      const empRecord = await HrEmployee.findById(employeeId).lean();
-      filter.user = empRecord ? empRecord.userId : employeeId;
-    }
+    console.log("[HRMS] Attendance query: today IST range", queryStart.toISOString(), "→", queryEnd.toISOString());
 
-    if (month) {
-      const [year, m] = month.split('-').map(Number);
-      const start = new Date(year, m - 1, 1);
-      const end = new Date(year, m, 1);
-      filter.date = { $gte: start, $lt: end };
-    }
-
-    console.log("[HRMS] Attendance query filter:", filter);
-    const records = await Attendance.find(filter)
+    // 1. Fetch today's attendance records (all employees in org)
+    const records = await Attendance.find({
+      ...req.orgFilter,
+      date: { $gte: queryStart, $lte: queryEnd }
+    })
       .populate('user', 'name email')
-      .sort({ date: -1 })
       .lean();
 
-    const processedRecords = records.map(r => enforceAutoLogout(r));
-    return successResponse(res, processedRecords, 'Attendance fetched.');
+    // Apply auto-logout logic
+    const processedRecords = await Promise.all(records.map(r => enforceAutoLogout(r)));
+
+    // Build a map of userId -> record for quick lookup
+    const attendedUserIds = new Set(
+      processedRecords.map(r => (r.user?._id || r.user)?.toString())
+    );
+
+    // 2. Fetch ALL users to find absent employees (same scope as getEmployees)
+    const allUsers = await User.find({}).select('name email').lean();
+
+    // 3. Build virtual "Absent" entries for employees who haven't clocked in today
+    const absentEntries = allUsers
+      .filter(u => !attendedUserIds.has(u._id.toString()))
+      .map(u => ({
+        _id: null,
+        user: { _id: u._id, name: u.name, email: u.email },
+        date: queryStart,
+        checkIn: null,
+        checkOut: null,
+        status: 'Absent',
+        workingHours: 0,
+      }));
+
+    // 4. Merge: real records first, then absent
+    const unified = [...processedRecords, ...absentEntries];
+
+    return successResponse(res, unified, 'Attendance fetched.');
   } catch (err) {
     console.error("[HRMS] getAttendance Error:", err);
     return errorResponse(res, err.message, 500);
