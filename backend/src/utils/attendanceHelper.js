@@ -1,12 +1,31 @@
 'use strict';
 
-const { getISTDayStart, getIST7PMThreshold, isSameISTDay } = require('./istTime');
+const { getISTDayStart, getIST7PMThreshold, isSameISTDay, getIST10AM } = require('./istTime');
 
 /**
  * enforceAutoLogout
  * ─────────────────
  * Handles auto-checkout at 7:00 PM IST while preserving industry-standard UTC storage.
  */
+const calculateAttendanceStatus = (record) => {
+    if (!record || !record.checkIn) return 'Absent';
+
+    // STEP 1: Check total hours worked first (if clocked out)
+    if (record.checkOut && record.workingHours !== undefined && record.workingHours < 4) {
+        return 'Half Day';
+    }
+
+    // STEP 2 & 3: If hours >= 4 or session in progress, check clock-in time
+    // Rules: <= 10:00 AM (inclusive) -> PRESENT, > 10:00 AM -> LATE
+    const checkInDate = new Date(record.checkIn);
+    const threshold10AM = getIST10AM(checkInDate);
+
+    if (checkInDate.getTime() > threshold10AM.getTime()) {
+        return 'Late';
+    }
+    return 'Present';
+};
+
 const enforceAutoLogout = async (record) => {
     if (!record || record.checkOut || !record.checkIn) return record;
 
@@ -33,11 +52,9 @@ const enforceAutoLogout = async (record) => {
         const hours         = parseFloat(Math.max(0, diffMs / (1000 * 60 * 60)).toFixed(1));
         record.workingHours = hours;
 
-        // ── STATUS RULE: Half Day overrides Late/Present ──────────────────────
-        if (hours < 4) {
-            record.status = 'Half Day';
-        }
-        // Original status (Late/Present) is preserved if >= 4 hours.
+        // ── STATUS RULE: Apply centralized logic ──────────────────────────────
+        record.status = calculateAttendanceStatus(record);
+        record.late   = (record.status === 'Late');
 
         console.log(`DEBUG [AutoLogoutHelper] recordId=${record._id} hours=${hours} status=${record.status}`);
 
@@ -49,4 +66,4 @@ const enforceAutoLogout = async (record) => {
     return record;
 };
 
-module.exports = { enforceAutoLogout };
+module.exports = { enforceAutoLogout, calculateAttendanceStatus };

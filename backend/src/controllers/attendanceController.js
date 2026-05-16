@@ -7,7 +7,7 @@ const HrEmployee = require('../models/HrEmployee');
 const Leave = require('../models/Leave');
 const { logActivity } = require('../services/activityService');
 const { successResponse, errorResponse } = require('../utils/helpers');
-const { enforceAutoLogout } = require('../utils/attendanceHelper');
+const { enforceAutoLogout, calculateAttendanceStatus } = require('../utils/attendanceHelper');
 const {
     getISTDayStart,
     getISTDayEnd,
@@ -44,21 +44,11 @@ exports.checkIn = async (req, res) => {
         }
 
         // ── LOGIC RULE: Attendance Rules use IST ──────────────────────────────
-        // We convert UTC -> IST only for checking business rules (Late/Present).
-        const checkInIST = new Date(
-            now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-        );
-        const totalMinutes = checkInIST.getHours() * 60 + checkInIST.getMinutes();
+        // Apply centralized status calculation logic
+        let status = calculateAttendanceStatus({ checkIn: now });
+        let late   = (status === 'Late');
 
-        let status = 'Present';
-        let late   = false;
-
-        if (totalMinutes > 600) { // 600 mins = 10:00 AM IST
-            status = 'Late';
-            late   = true;
-        }
-
-        console.log(`[CheckIn] userId=${userId} IST time=${checkInIST.getHours()}:${String(checkInIST.getMinutes()).padStart(2,'0')} status=${status}`);
+        console.log(`[CheckIn] userId=${userId} IST time=${getISTHour(now)}:${String(getISTMinutes(now)).padStart(2,'0')} status=${status}`);
 
         const emp = await HrEmployee.findOne({ userId, organizationId });
 
@@ -133,11 +123,9 @@ exports.checkOut = async (req, res) => {
         const workingHours = Math.max(0, diffMs / (1000 * 60 * 60));
         record.workingHours = Number(workingHours.toFixed(1));
 
-        // ── STATUS RULE: Half Day overrides Present/Late ──────────────────────
-        if (record.workingHours < 4) {
-            record.status = 'Half Day';
-        }
-        // Original status (Present/Late) is preserved if >= 4 hours.
+        // ── STATUS RULE: Apply centralized logic ──────────────────────────────
+        record.status = calculateAttendanceStatus(record);
+        record.late   = (record.status === 'Late');
 
         console.log("DEBUG [CheckOut] before save:", {
             checkIn: record.checkIn,
@@ -183,8 +171,14 @@ exports.getMyAttendance = async (req, res) => {
             ...req.orgFilter
         };
 
-        const records = await Attendance.find(filter).sort({ date: -1 });
-        const processed = await Promise.all(records.map(r => enforceAutoLogout(r)));
+        const records = await Attendance.find(filter).sort({ date: -1 }).lean();
+        const processed = await Promise.all(records.map(async r => {
+            const logoutProcessed = await enforceAutoLogout(r);
+            // Re-calculate status dynamically for ALL records (corrects existing ones on fetch)
+            logoutProcessed.status = calculateAttendanceStatus(logoutProcessed);
+            logoutProcessed.late   = (logoutProcessed.status === 'Late');
+            return logoutProcessed;
+        }));
 
         return successResponse(res, processed || [], 'Attendance log fetched');
     } catch (err) {

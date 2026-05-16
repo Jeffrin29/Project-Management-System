@@ -174,7 +174,7 @@ export const userApi = {
 
 // Admin
 export const adminApi = {
-  getUsers: (params = '') => api.get<any>(`/admin/users?limit=100${params}`),
+  getUsers: (params = '') => api.get<any>(`/admin/users?${params}`),
   createUser: (body: unknown) => api.post<any>('/admin/users', body),
   updateUser: (id: string, body: unknown) => api.put<any>(`/admin/users/${id}`, body),
   deleteUser: (id: string) => api.delete<any>(`/admin/users/${id}`),
