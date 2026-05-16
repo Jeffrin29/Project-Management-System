@@ -3,28 +3,41 @@ const User = require('../models/User');
 const Project = require('../models/Project');
 const Task = require('../models/Task');
 const HrEmployee = require('../models/HrEmployee');
-const { successResponse, errorResponse, getPagination, paginatedResponse } = require('../utils/helpers');
+const Attendance = require('../models/Attendance');
+const { successResponse, errorResponse } = require('../utils/helpers');
 
 // GET /api/admin/users
 const getUsers = async (req, res) => {
   try {
     const { organizationId } = req.user;
-    const { page, limit, skip } = getPagination(req.query);
     const filter = { organizationId };
     if (req.query.status) filter.status = req.query.status;
 
-    const [users, total] = await Promise.all([
-      User.find(filter)
-        .select('-passwordHash -refreshTokenHash')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('roleId', 'name displayName')
-        .lean(),
-      User.countDocuments(filter),
-    ]);
+    // Fetch ALL users — no skip/limit so no pagination cuts off results
+    const users = await User.find(filter)
+      .select('-passwordHash -refreshTokenHash')
+      .sort({ createdAt: -1 })
+      .populate('roleId', 'name displayName')
+      .lean();
 
-    return successResponse(res, paginatedResponse(users, total, page, limit));
+    // Determine which users have ever clocked in (at least one attendance record)
+    const userIds = users.map(u => u._id);
+    const usersWithAttendance = await Attendance.find({ user: { $in: userIds } }).distinct('user');
+    const attendanceSet = new Set(usersWithAttendance.map(id => id.toString()));
+
+    // Compute effective status:
+    //   - If DB status is 'inactive' or 'suspended' → keep it (manual disable preserved)
+    //   - If DB status is 'active' but no attendance record ever → show as 'inactive'
+    //   - If DB status is 'active' and has attendance → show as 'active'
+    const enrichedUsers = users.map(u => {
+      let effectiveStatus = u.status;
+      if (u.status === 'active' && !attendanceSet.has(u._id.toString())) {
+        effectiveStatus = 'inactive';
+      }
+      return { ...u, status: effectiveStatus };
+    });
+
+    return successResponse(res, enrichedUsers);
   } catch (err) {
     return errorResponse(res, err.message, 500);
   }
