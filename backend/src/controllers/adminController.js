@@ -11,7 +11,7 @@ const getUsers = async (req, res) => {
   try {
     const { organizationId } = req.user;
     const filter = { organizationId };
-    if (req.query.status) filter.status = req.query.status;
+    // Removed optional status filter to ensure all users are shown as per requirements
 
     // Fetch ALL users — no skip/limit so no pagination cuts off results
     const users = await User.find(filter)
